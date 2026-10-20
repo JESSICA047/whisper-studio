@@ -1,0 +1,1227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Whisper Studio — Free Local AI Video & Audio Transcription</title>
+  <style>
+    :root {
+      --bg-primary: #0b0f19;
+      --bg-secondary: #111827;
+      --bg-card: #161f33;
+      --bg-hover: #1e293b;
+      --border: #26334d;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent: #6366f1;
+      --accent-hover: #4f46e5;
+      --accent-soft: rgba(99, 102, 241, 0.14);
+      --emerald: #10b981;
+      --emerald-soft: rgba(16, 185, 129, 0.14);
+      --amber: #f59e0b;
+      --danger: #ef4444;
+      --radius: 14px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+      background: radial-gradient(circle at top right, #172036 0%, var(--bg-primary) 55%);
+      color: var(--text-primary);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    /* Top Header */
+    header {
+      border-bottom: 1px solid var(--border);
+      background: rgba(17, 24, 39, 0.85);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+
+    .header-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 20px;
+      box-shadow: 0 4px 16px rgba(99, 102, 241, 0.35);
+    }
+
+    .brand-title h1 {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-title p {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .badges {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      font-size: 12px;
+      padding: 5px 11px;
+      border-radius: 999px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text-secondary);
+    }
+
+    .badge.free {
+      background: var(--emerald-soft);
+      color: #34d399;
+      border-color: rgba(16, 185, 129, 0.3);
+    }
+
+    .badge.hw {
+      background: var(--accent-soft);
+      color: #a5b4fc;
+      border-color: rgba(99, 102, 241, 0.3);
+    }
+
+    /* Main Grid */
+    .container {
+      max-width: 1400px;
+      margin: 24px auto;
+      padding: 0 24px 48px;
+      display: grid;
+      grid-template-columns: 440px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    @media (max-width: 1024px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+    }
+
+    .card-title {
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-secondary);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Dropzone */
+    .dropzone {
+      border: 2px dashed #3b4c6b;
+      border-radius: 12px;
+      padding: 28px 20px;
+      text-align: center;
+      cursor: pointer;
+      background: rgba(22, 31, 51, 0.55);
+      transition: all 0.2s ease;
+    }
+
+    .dropzone:hover,
+    .dropzone.dragover {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .dropzone-icon {
+      font-size: 34px;
+      margin-bottom: 8px;
+    }
+
+    .dropzone h3 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .dropzone p {
+      font-size: 12.5px;
+      color: var(--text-secondary);
+    }
+
+    /* Selected File & Media Preview */
+    .media-box {
+      margin-top: 16px;
+      display: none;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .media-box.visible {
+      display: block;
+    }
+
+    .file-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .file-name {
+      font-size: 13.5px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: #e2e8f0;
+    }
+
+    .file-size {
+      font-size: 12px;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+    }
+
+    video,
+    audio {
+      width: 100%;
+      border-radius: 8px;
+      max-height: 240px;
+      background: #000;
+      outline: none;
+    }
+
+    /* Controls Form */
+    .form-group {
+      margin-top: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #cbd5e1;
+    }
+
+    select {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text-primary);
+      font-size: 13.5px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    select:focus {
+      border-color: var(--accent);
+    }
+
+    .model-hint {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 6px;
+      padding: 8px 10px;
+      background: rgba(22, 31, 51, 0.6);
+      border-radius: 8px;
+      border-left: 3px solid var(--accent);
+    }
+
+    /* Task Radio Pills */
+    .task-toggle {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      background: var(--bg-card);
+      padding: 5px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+
+    .task-btn {
+      padding: 9px 10px;
+      border-radius: 7px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .task-btn.active {
+      background: var(--accent);
+      color: white;
+      box-shadow: 0 2px 10px rgba(99, 102, 241, 0.35);
+    }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 14px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+
+    .checkbox-row input {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    /* Primary Action Button */
+    .action-row {
+      margin-top: 20px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-primary {
+      flex: 1;
+      padding: 13px 18px;
+      border-radius: 10px;
+      border: none;
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      color: white;
+      font-size: 14.5px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 16px rgba(99, 102, 241, 0.35);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-cancel {
+      padding: 13px 16px;
+      border-radius: 10px;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      background: rgba(239, 68, 68, 0.12);
+      color: #f87171;
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+      display: none;
+    }
+
+    .btn-cancel.visible {
+      display: inline-flex;
+      align-items: center;
+    }
+
+    /* Progress Section */
+    .progress-card {
+      margin-top: 18px;
+      padding: 14px;
+      border-radius: 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      display: none;
+    }
+
+    .progress-card.visible {
+      display: block;
+    }
+
+    .progress-top {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12.5px;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    .progress-bar-bg {
+      height: 9px;
+      background: #0f172a;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #6366f1, #10b981);
+      border-radius: 999px;
+      transition: width 0.25s ease;
+    }
+
+    .progress-bar-fill.indeterminate {
+      width: 35%;
+      animation: slide 1.2s infinite ease-in-out;
+    }
+
+    @keyframes slide {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(300%); }
+    }
+
+    .stats-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .stat-pill {
+      font-size: 11.5px;
+      padding: 3px 9px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-secondary);
+    }
+
+    /* Right Panel: Transcript & Exports */
+    .right-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 16px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .view-tabs {
+      display: flex;
+      gap: 6px;
+      background: var(--bg-card);
+      padding: 4px;
+      border-radius: 9px;
+      border: 1px solid var(--border);
+    }
+
+    .tab-btn {
+      padding: 6px 12px;
+      font-size: 12.5px;
+      font-weight: 600;
+      border-radius: 6px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+
+    .tab-btn.active {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .search-input {
+      padding: 7px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text-primary);
+      font-size: 13px;
+      outline: none;
+      width: 190px;
+    }
+
+    .btn-export {
+      padding: 7px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: #e2e8f0;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .btn-export:hover:not(:disabled) {
+      background: var(--bg-hover);
+      border-color: var(--accent);
+    }
+
+    .btn-export:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* Transcript Container */
+    .transcript-area {
+      min-height: 520px;
+      max-height: 70vh;
+      overflow-y: auto;
+      padding-right: 6px;
+    }
+
+    .empty-state {
+      height: 460px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      color: var(--text-muted);
+      padding: 24px;
+    }
+
+    .empty-state-icon {
+      font-size: 46px;
+      margin-bottom: 12px;
+      opacity: 0.6;
+    }
+
+    /* Segment List */
+    .segment-item {
+      display: grid;
+      grid-template-columns: 115px 1fr;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid transparent;
+      margin-bottom: 6px;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .segment-item:hover {
+      background: rgba(30, 41, 59, 0.55);
+      border-color: var(--border);
+    }
+
+    .segment-item.playing {
+      background: var(--accent-soft);
+      border-color: rgba(99, 102, 241, 0.45);
+    }
+
+    .timestamp-btn {
+      font-family: "JetBrains Mono", Consolas, monospace;
+      font-size: 12px;
+      color: #818cf8;
+      background: rgba(99, 102, 241, 0.12);
+      border: 1px solid rgba(99, 102, 241, 0.25);
+      border-radius: 6px;
+      padding: 4px 8px;
+      cursor: pointer;
+      height: fit-content;
+      text-align: center;
+      transition: all 0.15s;
+    }
+
+    .timestamp-btn:hover {
+      background: var(--accent);
+      color: white;
+    }
+
+    .segment-text {
+      font-size: 14.5px;
+      color: #f1f5f9;
+      outline: none;
+      border-radius: 4px;
+      padding: 2px 4px;
+    }
+
+    .segment-text:focus {
+      background: rgba(255, 255, 255, 0.06);
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+
+    .paragraph-box {
+      display: none;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px;
+      font-size: 15px;
+      line-height: 1.75;
+      color: #f1f5f9;
+      white-space: pre-wrap;
+    }
+
+    .paragraph-box.visible {
+      display: block;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #10b981;
+      color: #052e16;
+      font-weight: 700;
+      font-size: 13.5px;
+      padding: 10px 18px;
+      border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.25s;
+      pointer-events: none;
+      z-index: 99;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-icon">W</div>
+        <div class="brand-title">
+          <h1>Whisper Studio</h1>
+          <p>Local OpenAI Whisper GUI • Video & Audio to Text / Subtitles</p>
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge free">✓ 100% Free & Offline • Unlimited File Size</span>
+        <span class="badge hw" id="hwBadge">Detecting Hardware...</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Left Column: Upload, Preview & Settings -->
+    <section class="card">
+      <div class="card-title">
+        <span>1. Select Video or Audio File</span>
+      </div>
+
+      <input type="file" id="fileInput" accept="video/*,audio/*,.mkv,.mp4,.mov,.webm,.avi,.mp3,.wav,.m4a,.flac,.ogg,.aac,.wma" hidden />
+      <div class="dropzone" id="dropzone">
+        <div class="dropzone-icon">🎬</div>
+        <h3>Drag & Drop Video or Audio Here</h3>
+        <p>or click to browse • MP4, MKV, MOV, MP3, WAV, M4A, WEBM (No size limit)</p>
+      </div>
+
+      <div class="media-box" id="mediaBox">
+        <div class="file-meta">
+          <span class="file-name" id="fileNameLabel">video.mp4</span>
+          <span class="file-size" id="fileSizeLabel">0 MB</span>
+        </div>
+        <video id="videoPlayer" controls style="display:none;"></video>
+        <audio id="audioPlayer" controls style="display:none;"></audio>
+      </div>
+
+      <div class="form-group">
+        <label for="modelSelect">2. Whisper Model Size</label>
+        <select id="modelSelect"></select>
+        <div class="model-hint" id="modelHint">
+          Best everyday balance of speed and accuracy.
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="languageSelect">3. Spoken Language in Audio</label>
+        <select id="languageSelect"></select>
+      </div>
+
+      <div class="form-group">
+        <label>4. Output Mode</label>
+        <div class="task-toggle">
+          <button type="button" class="task-btn active" data-task="transcribe" id="btnTaskTranscribe">
+            Transcribe (Original)
+          </button>
+          <button type="button" class="task-btn" data-task="translate" id="btnTaskTranslate">
+            Translate → English
+          </button>
+        </div>
+      </div>
+
+      <label class="checkbox-row">
+        <input type="checkbox" id="vadCheckbox" checked />
+        <span>Smart Voice Filter (VAD) — Skip background silence & music</span>
+      </label>
+
+      <div class="action-row">
+        <button class="btn-primary" id="startBtn" disabled>
+          <span>⚡ Start Transcription</span>
+        </button>
+        <button class="btn-cancel" id="cancelBtn">Stop</button>
+      </div>
+
+      <div class="progress-card" id="progressCard">
+        <div class="progress-top">
+          <span id="statusText">Preparing...</span>
+          <span id="percentText">0%</span>
+        </div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" id="progressBar"></div>
+        </div>
+        <div class="stats-row">
+          <span class="stat-pill" id="statLang">Language: —</span>
+          <span class="stat-pill" id="statElapsed">Elapsed: 0.0s</span>
+          <span class="stat-pill" id="statSpeed">Segments: 0</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Column: Live Transcript & Subtitle Exports -->
+    <section class="card">
+      <div class="right-header">
+        <div class="view-tabs">
+          <button class="tab-btn active" id="tabTimeline">Timeline Segments</button>
+          <button class="tab-btn" id="tabParagraph">Full Paragraph</button>
+        </div>
+
+        <div class="toolbar">
+          <input type="text" class="search-input" id="searchInput" placeholder="🔍 Filter transcript..." />
+          <button class="btn-export" id="btnCopy" disabled>📋 Copy Text</button>
+          <button class="btn-export" id="btnTxt" disabled>⬇ .TXT</button>
+          <button class="btn-export" id="btnSrt" disabled>⬇ .SRT</button>
+          <button class="btn-export" id="btnVtt" disabled>⬇ .VTT</button>
+          <button class="btn-export" id="btnJson" disabled>⬇ .JSON</button>
+        </div>
+      </div>
+
+      <div class="transcript-area" id="transcriptArea">
+        <div class="empty-state" id="emptyState">
+          <div class="empty-state-icon">🎙️</div>
+          <h3>Ready to Transcribe</h3>
+          <p style="max-width: 420px; margin-top: 6px; font-size: 13.5px;">
+            Upload any video or audio file on the left and click <b>Start Transcription</b>.
+            Segments will stream here live with clickable timestamps and one-click SRT/VTT/TXT downloads.
+          </p>
+        </div>
+
+        <div id="segmentsContainer"></div>
+        <div class="paragraph-box" id="paragraphContainer"></div>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast">Copied to clipboard!</div>
+
+  <script>
+    let selectedFile = null;
+    let currentJobId = null;
+    let eventSource = null;
+    let selectedTask = "transcribe";
+    let segmentsData = [];
+    let modelsList = [];
+    let activePlayer = null;
+    let currentView = "timeline";
+
+    const dropzone = document.getElementById("dropzone");
+    const fileInput = document.getElementById("fileInput");
+    const mediaBox = document.getElementById("mediaBox");
+    const fileNameLabel = document.getElementById("fileNameLabel");
+    const fileSizeLabel = document.getElementById("fileSizeLabel");
+    const videoPlayer = document.getElementById("videoPlayer");
+    const audioPlayer = document.getElementById("audioPlayer");
+
+    const modelSelect = document.getElementById("modelSelect");
+    const modelHint = document.getElementById("modelHint");
+    const languageSelect = document.getElementById("languageSelect");
+    const vadCheckbox = document.getElementById("vadCheckbox");
+    const startBtn = document.getElementById("startBtn");
+    const cancelBtn = document.getElementById("cancelBtn");
+
+    const progressCard = document.getElementById("progressCard");
+    const statusText = document.getElementById("statusText");
+    const percentText = document.getElementById("percentText");
+    const progressBar = document.getElementById("progressBar");
+    const statLang = document.getElementById("statLang");
+    const statElapsed = document.getElementById("statElapsed");
+    const statSpeed = document.getElementById("statSpeed");
+
+    const emptyState = document.getElementById("emptyState");
+    const segmentsContainer = document.getElementById("segmentsContainer");
+    const paragraphContainer = document.getElementById("paragraphContainer");
+    const searchInput = document.getElementById("searchInput");
+
+    const exportButtons = [
+      document.getElementById("btnCopy"),
+      document.getElementById("btnTxt"),
+      document.getElementById("btnSrt"),
+      document.getElementById("btnVtt"),
+      document.getElementById("btnJson"),
+    ];
+
+    // Load system info & populate dropdowns
+    async function initSystemInfo() {
+      try {
+        const res = await fetch("/api/system-info");
+        const data = await res.json();
+        document.getElementById("hwBadge").textContent = "⚡ " + data.hardware.label;
+
+        modelsList = data.models;
+        modelSelect.innerHTML = "";
+        data.models.forEach((m) => {
+          const opt = document.createElement("option");
+          opt.value = m.id;
+          opt.textContent = `${m.name} — ${m.size} • ${m.speed}`;
+          if (m.id === "base") opt.selected = true;
+          modelSelect.appendChild(opt);
+        });
+        updateModelHint();
+
+        languageSelect.innerHTML = "";
+        data.languages.forEach((l) => {
+          const opt = document.createElement("option");
+          opt.value = l.code;
+          opt.textContent = l.name;
+          languageSelect.appendChild(opt);
+        });
+      } catch (e) {
+        document.getElementById("hwBadge").textContent = "Local CPU/GPU Mode";
+      }
+    }
+
+    function updateModelHint() {
+      const m = modelsList.find((x) => x.id === modelSelect.value);
+      if (m) {
+        modelHint.textContent = `${m.description} (First run downloads ${m.size} automatically)`;
+      }
+    }
+
+    modelSelect.addEventListener("change", updateModelHint);
+
+    // Task toggle
+    document.querySelectorAll(".task-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".task-btn").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        selectedTask = btn.dataset.task;
+      });
+    });
+
+    // View tabs
+    document.getElementById("tabTimeline").addEventListener("click", () => {
+      currentView = "timeline";
+      document.getElementById("tabTimeline").classList.add("active");
+      document.getElementById("tabParagraph").classList.remove("active");
+      segmentsContainer.style.display = "block";
+      paragraphContainer.classList.remove("visible");
+    });
+
+    document.getElementById("tabParagraph").addEventListener("click", () => {
+      currentView = "paragraph";
+      document.getElementById("tabParagraph").classList.add("active");
+      document.getElementById("tabTimeline").classList.remove("active");
+      segmentsContainer.style.display = "none";
+      if (segmentsData.length > 0) {
+        paragraphContainer.classList.add("visible");
+      }
+      renderParagraph();
+    });
+
+    // File selection & Drag-and-drop
+    dropzone.addEventListener("click", () => fileInput.click());
+    dropzone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      dropzone.classList.add("dragover");
+    });
+    dropzone.addEventListener("dragleave", () => dropzone.classList.remove("dragover"));
+    dropzone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dropzone.classList.remove("dragover");
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        handleFileSelected(e.dataTransfer.files[0]);
+      }
+    });
+    fileInput.addEventListener("change", () => {
+      if (fileInput.files && fileInput.files.length > 0) {
+        handleFileSelected(fileInput.files[0]);
+      }
+    });
+
+    function formatBytes(bytes) {
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+      if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+      return (bytes / (1024 * 1024 * 1024)).toFixed(2) + " GB";
+    }
+
+    function handleFileSelected(file) {
+      selectedFile = file;
+      fileNameLabel.textContent = file.name;
+      fileSizeLabel.textContent = formatBytes(file.size);
+      mediaBox.classList.add("visible");
+      startBtn.disabled = false;
+
+      const objectUrl = URL.createObjectURL(file);
+      const isVideo =
+        file.type.startsWith("video/") ||
+        /\.(mp4|mkv|mov|webm|avi|m4v)$/i.test(file.name);
+
+      if (isVideo) {
+        audioPlayer.pause();
+        audioPlayer.style.display = "none";
+        videoPlayer.src = objectUrl;
+        videoPlayer.style.display = "block";
+        activePlayer = videoPlayer;
+      } else {
+        videoPlayer.pause();
+        videoPlayer.style.display = "none";
+        audioPlayer.src = objectUrl;
+        audioPlayer.style.display = "block";
+        activePlayer = audioPlayer;
+      }
+    }
+
+    // Sync active segment highlight during playback
+    [videoPlayer, audioPlayer].forEach((player) => {
+      player.addEventListener("timeupdate", () => {
+        const t = player.currentTime;
+        const items = segmentsContainer.querySelectorAll(".segment-item");
+        items.forEach((item) => {
+          const start = parseFloat(item.dataset.start);
+          const end = parseFloat(item.dataset.end);
+          if (t >= start && t <= end) {
+            item.classList.add("playing");
+          } else {
+            item.classList.remove("playing");
+          }
+        });
+      });
+    });
+
+    // Format seconds to MM:SS or HH:MM:SS
+    function formatDisplayTime(sec) {
+      const total = Math.max(0, Math.floor(sec));
+      const hrs = Math.floor(total / 3600);
+      const mins = Math.floor((total % 3600) / 60);
+      const secs = total % 60;
+      if (hrs > 0) {
+        return `${String(hrs).padStart(2, "0")}:${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+      }
+      return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+    }
+
+    function formatSrtTimestamp(sec) {
+      const ms = Math.round((sec % 1) * 1000);
+      const total = Math.floor(sec);
+      const hrs = Math.floor(total / 3600);
+      const mins = Math.floor((total % 3600) / 60);
+      const secs = total % 60;
+      return `${String(hrs).padStart(2, "0")}:${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")},${String(ms).padStart(3, "0")}`;
+    }
+
+    function formatVttTimestamp(sec) {
+      return formatSrtTimestamp(sec).replace(",", ".");
+    }
+
+    // Start Transcription
+    startBtn.addEventListener("click", async () => {
+      if (!selectedFile) return;
+
+      // Reset UI
+      segmentsData = [];
+      segmentsContainer.innerHTML = "";
+      paragraphContainer.textContent = "";
+      emptyState.style.display = "none";
+      exportButtons.forEach((b) => (b.disabled = true));
+
+      startBtn.disabled = true;
+      cancelBtn.classList.add("visible");
+      progressCard.classList.add("visible");
+      progressBar.style.width = "0%";
+      progressBar.classList.add("indeterminate");
+      statusText.textContent = "Uploading media to local engine...";
+      percentText.textContent = "";
+      statLang.textContent = "Language: detecting...";
+      statElapsed.textContent = "Elapsed: 0.0s";
+      statSpeed.textContent = "Segments: 0";
+
+      try {
+        // 1. Stream file directly to local server (supports multi-GB files with zero RAM overhead)
+        const uploadRes = await fetch("/api/upload", {
+          method: "POST",
+          headers: {
+            "X-Filename": encodeURIComponent(selectedFile.name),
+            "Content-Type": "application/octet-stream",
+          },
+          body: selectedFile,
+        });
+
+        if (!uploadRes.ok) {
+          throw new Error("Failed to upload file to local server.");
+        }
+
+        const uploadData = await uploadRes.json();
+        currentJobId = uploadData.job_id;
+
+        // 2. Open SSE stream for real-time segments
+        const params = new URLSearchParams({
+          model: modelSelect.value,
+          language: languageSelect.value,
+          task: selectedTask,
+          vad_filter: vadCheckbox.checked ? "true" : "false",
+        });
+
+        eventSource = new EventSource(`/api/transcribe/${currentJobId}?${params.toString()}`);
+
+        eventSource.addEventListener("status", (e) => {
+          const data = JSON.parse(e.data);
+          statusText.textContent = data.message;
+        });
+
+        eventSource.addEventListener("info", (e) => {
+          const data = JSON.parse(e.data);
+          progressBar.classList.remove("indeterminate");
+          progressBar.style.width = "2%";
+          percentText.textContent = "0%";
+          statusText.textContent = "Transcribing speech...";
+          statLang.textContent = `Language: ${data.detected_language.toUpperCase()} (${data.language_probability}%)`;
+        });
+
+        eventSource.addEventListener("segment", (e) => {
+          const seg = JSON.parse(e.data);
+          segmentsData.push(seg);
+          appendSegmentRow(seg);
+          if (currentView === "paragraph") {
+            renderParagraph();
+          }
+
+          progressBar.classList.remove("indeterminate");
+          progressBar.style.width = `${seg.progress}%`;
+          percentText.textContent = `${seg.progress}%`;
+          statElapsed.textContent = `Elapsed: ${seg.elapsed}s`;
+          statSpeed.textContent = `Segments: ${segmentsData.length}`;
+          exportButtons.forEach((b) => (b.disabled = false));
+        });
+
+        eventSource.addEventListener("done", (e) => {
+          const data = JSON.parse(e.data);
+          progressBar.classList.remove("indeterminate");
+          progressBar.style.width = "100%";
+          percentText.textContent = "100%";
+          statusText.textContent = `✓ Completed in ${data.elapsed_seconds}s (${data.speed_factor}x real-time)`;
+          finishSession();
+        });
+
+        eventSource.addEventListener("cancelled", (e) => {
+          const data = JSON.parse(e.data);
+          progressBar.classList.remove("indeterminate");
+          statusText.textContent = data.message;
+          finishSession();
+        });
+
+        eventSource.addEventListener("error", (e) => {
+          let msg = "An error occurred during transcription.";
+          if (e.data) {
+            try {
+              msg = JSON.parse(e.data).message;
+            } catch (_) {}
+          }
+          progressBar.classList.remove("indeterminate");
+          statusText.textContent = "Error: " + msg;
+          finishSession();
+        });
+      } catch (err) {
+        statusText.textContent = "Error: " + err.message;
+        finishSession();
+      }
+    });
+
+    cancelBtn.addEventListener("click", async () => {
+      if (currentJobId) {
+        await fetch(`/api/cancel/${currentJobId}`, { method: "POST" });
+      }
+      if (eventSource) {
+        eventSource.close();
+      }
+      statusText.textContent = "Stopped by user.";
+      progressBar.classList.remove("indeterminate");
+      finishSession();
+    });
+
+    function finishSession() {
+      if (eventSource) {
+        eventSource.close();
+        eventSource = null;
+      }
+      startBtn.disabled = false;
+      cancelBtn.classList.remove("visible");
+      if (segmentsData.length > 0) {
+        exportButtons.forEach((b) => (b.disabled = false));
+      }
+    }
+
+    function appendSegmentRow(seg) {
+      const row = document.createElement("div");
+      row.className = "segment-item";
+      row.dataset.start = seg.start;
+      row.dataset.end = seg.end;
+      row.dataset.id = seg.id;
+
+      const timeBtn = document.createElement("button");
+      timeBtn.className = "timestamp-btn";
+      timeBtn.title = "Click to jump player to this timestamp";
+      timeBtn.textContent = `${formatDisplayTime(seg.start)} → ${formatDisplayTime(seg.end)}`;
+      timeBtn.addEventListener("click", () => {
+        if (activePlayer) {
+          activePlayer.currentTime = seg.start;
+          activePlayer.play();
+        }
+      });
+
+      const textDiv = document.createElement("div");
+      textDiv.className = "segment-text";
+      textDiv.contentEditable = "true";
+      textDiv.spellcheck = false;
+      textDiv.textContent = seg.text;
+      textDiv.addEventListener("input", () => {
+        seg.text = textDiv.textContent.trim();
+        renderParagraph();
+      });
+
+      row.appendChild(timeBtn);
+      row.appendChild(textDiv);
+      segmentsContainer.appendChild(row);
+
+      // Auto-scroll to bottom while streaming
+      const area = document.getElementById("transcriptArea");
+      area.scrollTop = area.scrollHeight;
+    }
+
+    function renderParagraph() {
+      paragraphContainer.textContent = segmentsData.map((s) => s.text).join(" ");
+    }
+
+    // Search filter
+    searchInput.addEventListener("input", () => {
+      const q = searchInput.value.trim().toLowerCase();
+      const rows = segmentsContainer.querySelectorAll(".segment-item");
+      rows.forEach((row) => {
+        const txt = row.querySelector(".segment-text").textContent.toLowerCase();
+        row.style.display = !q || txt.includes(q) ? "grid" : "none";
+      });
+    });
+
+    // Export Helpers
+    function getBaseFilename() {
+      if (!selectedFile) return "transcript";
+      return selectedFile.name.replace(/\.[^/.]+$/, "");
+    }
+
+    function downloadBlob(content, filename, mimeType) {
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById("toast");
+      t.textContent = msg;
+      t.classList.add("show");
+      setTimeout(() => t.classList.remove("show"), 2200);
+    }
+
+    document.getElementById("btnCopy").addEventListener("click", async () => {
+      const fullText = segmentsData.map((s) => s.text).join(" ");
+      await navigator.clipboard.writeText(fullText);
+      showToast("Copied full transcript to clipboard!");
+    });
+
+    document.getElementById("btnTxt").addEventListener("click", () => {
+      const txt = segmentsData.map((s) => s.text).join("\n\n");
+      downloadBlob(txt, `${getBaseFilename()}.txt`, "text/plain;charset=utf-8");
+    });
+
+    document.getElementById("btnSrt").addEventListener("click", () => {
+      const srt = segmentsData
+        .map(
+          (s, idx) =>
+            `${idx + 1}\n${formatSrtTimestamp(s.start)} --> ${formatSrtTimestamp(s.end)}\n${s.text}\n`
+        )
+        .join("\n");
+      downloadBlob(srt, `${getBaseFilename()}.srt`, "text/plain;charset=utf-8");
+    });
+
+    document.getElementById("btnVtt").addEventListener("click", () => {
+      const body = segmentsData
+        .map(
+          (s) =>
+            `${formatVttTimestamp(s.start)} --> ${formatVttTimestamp(s.end)}\n${s.text}\n`
+        )
+        .join("\n");
+      downloadBlob(`WEBVTT\n\n${body}`, `${getBaseFilename()}.vtt`, "text/vtt;charset=utf-8");
+    });
+
+    document.getElementById("btnJson").addEventListener("click", () => {
+      const json = JSON.stringify({ filename: selectedFile?.name, segments: segmentsData }, null, 2);
+      downloadBlob(json, `${getBaseFilename()}.json`, "application/json;charset=utf-8");
+    });
+
+    initSystemInfo();
+  </script>
+</body>
+</html>

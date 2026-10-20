@@ -1,0 +1,12 @@
+{
+  "name": "whisper-studio",
+  "version": "1.0.0",
+  "description": "Local OpenAI Whisper GUI for Video & Audio Transcription",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "^3.4.0"
+  }
+}
