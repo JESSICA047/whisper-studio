@@ -1,14 +1,15 @@
-# Whisper Studio — Free Local AI Video & Audio Transcription GUI
+# Whisper Studio — Free AI Video & Audio Transcription GUI
 
-A 100% free, local web GUI for OpenAI's Whisper models with **unlimited file size**, live streaming timestamps, interactive audio/video playback, and one-click subtitle exports (`.SRT`, `.VTT`, `.TXT`, `.JSON`).
+A 100% free, open-source GUI for OpenAI's Whisper models with **unlimited file size**, live streaming timestamps, interactive audio/video playback, and one-click subtitle exports (`.SRT`, `.VTT`, `.TXT`, `.JSON`).
+
+Works **both in the cloud on Vercel** (100% client-side WebAssembly AI engine in your browser) and **locally on your desktop** (powered by `FFmpeg` + quantized ONNX / `faster-whisper`).
 
 ## ✨ Features
 
-- **100% Free & Local**: Runs completely on your own computer — no OpenAI API keys, no cloud fees, and **no 25 MB file size limit**.
-- **Unlimited Video & Audio File Sizes**: Streams multi-gigabyte video/audio files (`MP4`, `MKV`, `MOV`, `WEBM`, `MP3`, `WAV`, `M4A`, `FLAC`, `OGG`) directly to disk and processes audio in 30-second windows using `FFmpeg`, keeping RAM usage low even on 3-hour recordings.
-- **Quantized INT8 Speed (4x Faster)**:
-  - **Node.js Engine (`server.js`)**: Uses native C++ ONNX Runtime (`@huggingface/transformers`) with INT8 quantized Whisper models (`tiny`, `base`, `small`, `medium`, `large-v3-turbo`).
-  - **Python Engine (`app.py`)**: Uses `faster-whisper` (`CTranslate2` INT8 on CPU / FP16 on NVIDIA CUDA GPUs).
+- **100% Free & No API Keys Needed**: No OpenAI API fees and **no 25 MB file size limit**.
+- **Dual Execution Engine**:
+  - **🌐 Cloud / Vercel Mode (`static/worker.js`)**: Runs quantized OpenAI Whisper models (`tiny`, `base`, `small`) directly inside the visitor's browser using WebAssembly & WebAudio — zero server limits or serverless timeouts.
+  - **⚡ Local Desktop Mode (`server.js` / `app.py`)**: Uses native `FFmpeg` + C++ ONNX Runtime (`@huggingface/transformers`) or Python `faster-whisper` (`CTranslate2`) to stream multi-gigabyte video/audio files in 30-second windows.
 - **Interactive Media Player & Editable Timeline**:
   - Click any timestamp badge (`00:12 → 00:16`) to jump the video/audio player to that exact moment.
   - Click any transcribed line to edit words inline before exporting your subtitles.
@@ -17,14 +18,19 @@ A 100% free, local web GUI for OpenAI's Whisper models with **unlimited file siz
 
 ---
 
-## 🚀 Quick Start (Windows)
+## 🚀 Deploy to Vercel
 
-Double-click **[`start_whisper_gui.bat`](./start_whisper_gui.bat)** or run:
+This repository is pre-configured with [`vercel.json`](./vercel.json) and [`.vercelignore`](./.vercelignore) to deploy as a fast static WebAssembly AI app on Vercel with zero serverless function timeouts.
 
-```powershell
+---
+
+## 💻 Run Locally (Windows / macOS / Linux)
+
+Double-click **[`start_whisper_gui.bat`](./start_whisper_gui.bat)** on Windows, or run:
+
+```bash
+npm install
 node server.js
 ```
 
 Your browser will automatically open to **`http://127.0.0.1:8765`**.
-
-> **Note**: The first time you transcribe with a model size (e.g., `Tiny` ~75 MB or `Base` ~145 MB), the model weights are automatically downloaded and cached in the local `models_cache/` folder so future runs work completely offline.

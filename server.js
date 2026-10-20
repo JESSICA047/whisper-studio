@@ -213,6 +213,12 @@ const server = http.createServer(async (req, res) => {
     return fs.createReadStream(htmlPath).pipe(res);
   }
 
+  if (req.method === "GET" && pathname === "/worker.js") {
+    const workerPath = path.join(STATIC_DIR, "worker.js");
+    res.writeHead(200, { "Content-Type": "application/javascript; charset=utf-8" });
+    return fs.createReadStream(workerPath).pipe(res);
+  }
+
   // 2. System Info
   if (req.method === "GET" && pathname === "/api/system-info") {
     const cpuCount = os.cpus().length;

@@ -769,11 +769,61 @@
     let selectedFile = null;
     let currentJobId = null;
     let eventSource = null;
+    let browserWorker = null;
+    let useBrowserWorker = false;
     let selectedTask = "transcribe";
     let segmentsData = [];
     let modelsList = [];
     let activePlayer = null;
     let currentView = "timeline";
+
+    const DEFAULT_MODELS = [
+      {
+        id: "tiny",
+        name: "Tiny",
+        size: "~45 MB",
+        speed: "Fastest (~10x)",
+        description: "Great for quick drafts and fast browser/CPU transcription.",
+      },
+      {
+        id: "base",
+        name: "Base (Recommended)",
+        size: "~75 MB",
+        speed: "Very Fast (~7x)",
+        description: "Best everyday balance of speed and accuracy.",
+      },
+      {
+        id: "small",
+        name: "Small",
+        size: "~250 MB",
+        speed: "Fast (~4x)",
+        description: "High accuracy for accents, technical terms, and multi-language audio.",
+      },
+    ];
+
+    const DEFAULT_LANGUAGES = [
+      { code: "auto", name: "Auto-Detect / Multilingual" },
+      { code: "english", name: "English" },
+      { code: "spanish", name: "Spanish" },
+      { code: "french", name: "French" },
+      { code: "german", name: "German" },
+      { code: "italian", name: "Italian" },
+      { code: "portuguese", name: "Portuguese" },
+      { code: "dutch", name: "Dutch" },
+      { code: "russian", name: "Russian" },
+      { code: "chinese", name: "Chinese" },
+      { code: "japanese", name: "Japanese" },
+      { code: "korean", name: "Korean" },
+      { code: "arabic", name: "Arabic" },
+      { code: "hindi", name: "Hindi" },
+      { code: "turkish", name: "Turkish" },
+      { code: "polish", name: "Polish" },
+      { code: "ukrainian", name: "Ukrainian" },
+      { code: "vietnamese", name: "Vietnamese" },
+      { code: "indonesian", name: "Indonesian" },
+      { code: "thai", name: "Thai" },
+      { code: "swedish", name: "Swedish" },
+    ];
 
     const dropzone = document.getElementById("dropzone");
     const fileInput = document.getElementById("fileInput");
@@ -811,33 +861,41 @@
       document.getElementById("btnJson"),
     ];
 
+    function populateDropdowns(models, languages) {
+      modelsList = models;
+      modelSelect.innerHTML = "";
+      models.forEach((m) => {
+        const opt = document.createElement("option");
+        opt.value = m.id;
+        opt.textContent = `${m.name} — ${m.size} • ${m.speed}`;
+        if (m.id === "base") opt.selected = true;
+        modelSelect.appendChild(opt);
+      });
+      updateModelHint();
+
+      languageSelect.innerHTML = "";
+      languages.forEach((l) => {
+        const opt = document.createElement("option");
+        opt.value = l.code;
+        opt.textContent = l.name;
+        languageSelect.appendChild(opt);
+      });
+    }
+
     // Load system info & populate dropdowns
     async function initSystemInfo() {
       try {
         const res = await fetch("/api/system-info");
+        if (!res.ok) throw new Error("Static cloud deployment");
         const data = await res.json();
+        useBrowserWorker = false;
         document.getElementById("hwBadge").textContent = "⚡ " + data.hardware.label;
-
-        modelsList = data.models;
-        modelSelect.innerHTML = "";
-        data.models.forEach((m) => {
-          const opt = document.createElement("option");
-          opt.value = m.id;
-          opt.textContent = `${m.name} — ${m.size} • ${m.speed}`;
-          if (m.id === "base") opt.selected = true;
-          modelSelect.appendChild(opt);
-        });
-        updateModelHint();
-
-        languageSelect.innerHTML = "";
-        data.languages.forEach((l) => {
-          const opt = document.createElement("option");
-          opt.value = l.code;
-          opt.textContent = l.name;
-          languageSelect.appendChild(opt);
-        });
+        populateDropdowns(data.models, data.languages);
       } catch (e) {
-        document.getElementById("hwBadge").textContent = "Local CPU/GPU Mode";
+        // Running on Vercel / static hosting -> use 100% client-side WebAssembly Whisper Worker!
+        useBrowserWorker = true;
+        document.getElementById("hwBadge").textContent = "⚡ In-Browser WebAssembly AI Engine (Vercel Ready)";
+        populateDropdowns(DEFAULT_MODELS, DEFAULT_LANGUAGES);
       }
     }
 
@@ -974,6 +1032,30 @@
       return formatSrtTimestamp(sec).replace(",", ".");
     }
 
+    async function decodeAudioInBrowser(file) {
+      const arrayBuffer = await file.arrayBuffer();
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)({
+        sampleRate: 16000,
+      });
+      try {
+        const decoded = await audioCtx.decodeAudioData(arrayBuffer);
+        if (decoded.numberOfChannels === 1) {
+          return new Float32Array(decoded.getChannelData(0));
+        }
+        // Mix stereo down to mono
+        const ch0 = decoded.getChannelData(0);
+        const ch1 = decoded.getChannelData(1);
+        const mono = new Float32Array(ch0.length);
+        const scale = Math.sqrt(2);
+        for (let i = 0; i < ch0.length; i++) {
+          mono[i] = (scale * (ch0[i] + ch1[i])) / 2;
+        }
+        return mono;
+      } finally {
+        await audioCtx.close().catch(() => {});
+      }
+    }
+
     // Start Transcription
     startBtn.addEventListener("click", async () => {
       if (!selectedFile) return;
@@ -990,11 +1072,83 @@
       progressCard.classList.add("visible");
       progressBar.style.width = "0%";
       progressBar.classList.add("indeterminate");
-      statusText.textContent = "Uploading media to local engine...";
+      statusText.textContent = useBrowserWorker
+        ? "Decoding audio waveform in browser..."
+        : "Uploading media to local engine...";
       percentText.textContent = "";
       statLang.textContent = "Language: detecting...";
       statElapsed.textContent = "Elapsed: 0.0s";
       statSpeed.textContent = "Segments: 0";
+
+      if (useBrowserWorker) {
+        try {
+          const audioData = await decodeAudioInBrowser(selectedFile);
+          if (!browserWorker) {
+            browserWorker = new Worker("/worker.js", { type: "module" });
+          }
+
+          browserWorker.onmessage = (e) => {
+            const { type, payload } = e.data;
+            if (type === "status") {
+              statusText.textContent = payload.message;
+            } else if (type === "info") {
+              progressBar.classList.remove("indeterminate");
+              progressBar.style.width = "2%";
+              percentText.textContent = "0%";
+              statusText.textContent = "Transcribing speech in browser...";
+              statLang.textContent = `Language: ${payload.detected_language}`;
+            } else if (type === "segment") {
+              segmentsData.push(payload);
+              appendSegmentRow(payload);
+              if (currentView === "paragraph") {
+                renderParagraph();
+              }
+              progressBar.classList.remove("indeterminate");
+              progressBar.style.width = `${payload.progress}%`;
+              percentText.textContent = `${payload.progress}%`;
+              statElapsed.textContent = `Elapsed: ${payload.elapsed}s`;
+              statSpeed.textContent = `Segments: ${segmentsData.length}`;
+              exportButtons.forEach((b) => (b.disabled = false));
+            } else if (type === "progress_only") {
+              progressBar.classList.remove("indeterminate");
+              progressBar.style.width = `${payload.progress}%`;
+              percentText.textContent = `${payload.progress}%`;
+              statElapsed.textContent = `Elapsed: ${payload.elapsed}s`;
+            } else if (type === "done") {
+              progressBar.classList.remove("indeterminate");
+              progressBar.style.width = "100%";
+              percentText.textContent = "100%";
+              statusText.textContent = `✓ Completed in ${payload.elapsed_seconds}s (${payload.speed_factor}x real-time)`;
+              finishSession();
+            } else if (type === "cancelled") {
+              progressBar.classList.remove("indeterminate");
+              statusText.textContent = payload.message;
+              finishSession();
+            } else if (type === "error") {
+              progressBar.classList.remove("indeterminate");
+              statusText.textContent = "Error: " + payload.message;
+              finishSession();
+            }
+          };
+
+          browserWorker.postMessage({
+            action: "transcribe",
+            payload: {
+              audioData,
+              model: modelSelect.value,
+              language: languageSelect.value,
+              task: selectedTask,
+              vadFilter: vadCheckbox.checked,
+            },
+          });
+        } catch (err) {
+          progressBar.classList.remove("indeterminate");
+          statusText.textContent =
+            "Error decoding media in browser: " + (err.message || String(err));
+          finishSession();
+        }
+        return;
+      }
 
       try {
         // 1. Stream file directly to local server (supports multi-GB files with zero RAM overhead)
@@ -1088,6 +1242,11 @@
     });
 
     cancelBtn.addEventListener("click", async () => {
+      if (useBrowserWorker && browserWorker) {
+        browserWorker.postMessage({ action: "cancel" });
+        statusText.textContent = "Stopping after current segment...";
+        return;
+      }
       if (currentJobId) {
         await fetch(`/api/cancel/${currentJobId}`, { method: "POST" });
       }
