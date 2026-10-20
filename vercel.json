@@ -1,7 +1,7 @@
 {
   "version": 2,
   "buildCommand": "",
-  "installCommand": "echo 'Static WebAssembly deployment'",
-  "outputDirectory": "static",
+  "installCommand": "echo 'Static WebAssembly build'",
+  "outputDirectory": "public",
   "cleanUrls": true
 }

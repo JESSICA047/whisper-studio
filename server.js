@@ -7,7 +7,7 @@ const { spawn, exec } = require("child_process");
 
 const PORT = 8765;
 const BASE_DIR = __dirname;
-const STATIC_DIR = path.join(BASE_DIR, "static");
+const STATIC_DIR = path.join(BASE_DIR, "public");
 const UPLOAD_DIR = path.join(BASE_DIR, "uploads");
 const MODELS_DIR = path.join(BASE_DIR, "models_cache");
 

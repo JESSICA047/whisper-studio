@@ -1,18 +1,26 @@
 import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.4.0";
 
+// Configure Transformers.js for reliable in-browser execution on Vercel / static hosts
 env.allowLocalModels = false;
 env.useBrowserCache = true;
+if (env.backends && env.backends.onnx && env.backends.onnx.wasm) {
+  // We are already inside a Web Worker; disable nested proxy worker to avoid CDN CORS Worker errors
+  env.backends.onnx.wasm.proxy = false;
+  if (!self.crossOriginIsolated) {
+    env.backends.onnx.wasm.numThreads = 1;
+  }
+}
 
 const MODEL_MAP = {
   tiny: "onnx-community/whisper-tiny",
   base: "onnx-community/whisper-base",
   small: "onnx-community/whisper-small",
-  medium: "onnx-community/whisper-small", // fallback to small in browser WASM to prevent OOM
+  medium: "onnx-community/whisper-small",
   "large-v3-turbo": "onnx-community/whisper-small",
   "large-v3": "onnx-community/whisper-small",
 };
 
-let cachedPipeline = { repo: null, transcriber: null };
+let cachedPipeline = { key: null, transcriber: null };
 let isCancelled = false;
 
 function computeRmsEnergy(samples) {
@@ -29,7 +37,7 @@ function computeRmsEnergy(samples) {
 
 async function getTranscriber(modelId) {
   const repo = MODEL_MAP[modelId] || MODEL_MAP.base;
-  if (cachedPipeline.repo === repo && cachedPipeline.transcriber) {
+  if (cachedPipeline.key === repo && cachedPipeline.transcriber) {
     return cachedPipeline.transcriber;
   }
 
@@ -37,26 +45,26 @@ async function getTranscriber(modelId) {
   const transcriber = await pipeline("automatic-speech-recognition", repo, {
     dtype: {
       encoder_model: "fp32",
-      decoder_model_merged: "q4",
+      decoder_model_merged: "q8",
     },
     device: "wasm",
     progress_callback: (info) => {
       if (info.status === "progress" && info.file && typeof info.progress === "number") {
         fileProgress[info.file] = info.progress;
         const values = Object.values(fileProgress);
-        const avg = Math.round(values.reduce((a, b) => a + b, 0) / values.length);
+        const avg = Math.min(99, Math.round(values.reduce((a, b) => a + b, 0) / values.length));
         self.postMessage({
-          type: "status",
+          type: "download_progress",
           payload: {
-            stage: "downloading_model",
-            message: `Downloading '${modelId}' Whisper model to browser cache (${avg}%)...`,
+            progress: avg,
+            message: `Downloading '${modelId}' Whisper model (${avg}%) — cached in browser after 1st run...`,
           },
         });
       }
     },
   });
 
-  cachedPipeline = { repo, transcriber };
+  cachedPipeline = { key: repo, transcriber };
   return transcriber;
 }
 
@@ -78,7 +86,7 @@ self.addEventListener("message", async (event) => {
         type: "status",
         payload: {
           stage: "loading_model",
-          message: `Loading '${model}' model in browser (cached after first run)...`,
+          message: `Initializing '${model}' Whisper model (100% free in-browser WASM)...`,
         },
       });
 
@@ -128,7 +136,7 @@ self.addEventListener("message", async (event) => {
         if (chunkAudio.length < 1600) break;
 
         const rms = computeRmsEnergy(chunkAudio);
-        if (!vadFilter || rms > 0.0015) {
+        if (!vadFilter || rms > 0.0012) {
           const options = {
             return_timestamps: true,
             chunk_length_s: 30,
@@ -185,7 +193,6 @@ self.addEventListener("message", async (event) => {
             });
           }
         } else {
-          // Update progress even when skipping silent 30s window
           const absEnd = Number((offsetSec + chunkActualSec).toFixed(3));
           const progress =
             totalDuration > 0
